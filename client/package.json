@@ -37,6 +37,10 @@
     ]
   },
   "devDependencies": {
+    "@fluentui/react-components": "^9.64.0",
+    "@fluentui/react-datepicker-compat": "^0.5.8",
+    "@fluentui/react-icons": "^2.0.300",
+    "@fluentui/react-nav-preview": "^0.13.8",
     "@tanstack/react-query": "^5.81.5",
     "axios": "^1.10.0",
     "@types/react": "^18.3.23",

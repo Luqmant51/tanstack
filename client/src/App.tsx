@@ -1,9 +1,9 @@
 import './App.css';
-import UserProfile from './UserProfile.tsx';
+import Portaladministration from './portaladministration.tsx';
 
 
 function App() {
-  return <UserProfile/>;
+  return <Portaladministration/>;
 }
 
 export default App;
