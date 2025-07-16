@@ -53,8 +53,8 @@ const useStyles = makeStyles({
 })
 
 type CustomDataGridProps<T extends Record<string, unknown>> = {
-  items: T[]
-  getRowId: (_item: T) => number | string
+  items?: T[]
+  getRowId?: (_item: T) => number | string
   filters?: {
     portalName?: string
     marketerName?: string
@@ -63,10 +63,13 @@ type CustomDataGridProps<T extends Record<string, unknown>> = {
   }
   label?: string
   searchBool?: boolean
+  viewBool?: boolean
   deleteBool?: boolean
   editBool?: boolean
   size?: 'medium' | 'small' | 'large'
   onEditClick?: (_item: T) => void
+  onDeleteClick?: (_item: T) => void
+  onAddButton?: () => void
 }
 
 type ColumnDefinition<T> = {
@@ -77,13 +80,17 @@ type ColumnDefinition<T> = {
 }
 
 export function CustomDataGrid<T extends Record<string, unknown>>({
-  items,
+  items = [],
   getRowId,
-  filters,
+  filters = {},
   searchBool,
   deleteBool,
+  viewBool,
   editBool,
   onEditClick,
+  onDeleteClick,
+  onAddButton,
+  label
 }: CustomDataGridProps<T>) {
   const styles = useStyles()
   const [filter, setFilter] = useState('')
@@ -92,14 +99,18 @@ export function CustomDataGrid<T extends Record<string, unknown>>({
   const [pageSize, setPageSize] = useState(10)
 
   useEffect(() => {
-    setInternalItems(items)
+    if (items && Array.isArray(items)) {
+      setInternalItems(items)
+    } else {
+      setInternalItems([])
+    }
   }, [items])
 
   const getCellFocusMode = (columnId: TableColumnId): 'cell' | 'group' =>
     columnId === 'edit' || columnId === 'delete' ? 'group' : 'cell'
 
   const generateColumns = useMemo(() => {
-    if (!internalItems || internalItems.length === 0) return []
+    if (internalItems.length === 0) return []
 
     const sample = internalItems[0]
     const keys = Object.keys(sample).filter(k => k !== 'id')
@@ -125,6 +136,29 @@ export function CustomDataGrid<T extends Record<string, unknown>>({
       },
     }))
 
+    if (viewBool) {
+      columns.unshift({
+        columnId: 'view',
+        renderHeaderCell: () => <div style={{ minWidth: '80px' }}>VIEW</div>,
+        renderCell: (item: T) => {
+          const id = getRowId ? getRowId(item) : '#'
+          return (
+            <a
+              href={`#${id}`}
+              style={{
+                color: tokens.colorBrandForeground1,
+                textDecoration: 'underline',
+                cursor: 'pointer',
+              }}
+            >
+              View
+            </a>
+          )
+        },
+        compare: () => 0,
+      })
+    }
+
     if (deleteBool) {
       columns.unshift({
         columnId: 'delete',
@@ -134,7 +168,7 @@ export function CustomDataGrid<T extends Record<string, unknown>>({
             style={{ cursor: 'pointer' }}
             onClick={() => {
               if (window.confirm('Are you sure you want to delete this row?')) {
-                setInternalItems(prev => prev.filter(row => getRowId(row) !== getRowId(item)))
+                onDeleteClick?.(item)
               }
             }}
           />
@@ -158,7 +192,7 @@ export function CustomDataGrid<T extends Record<string, unknown>>({
     }
 
     return columns
-  }, [internalItems, deleteBool, editBool, onEditClick, getRowId])
+  }, [internalItems, deleteBool, editBool, onEditClick, onDeleteClick, getRowId])
 
   const filteredData = useMemo(() => {
     return internalItems.filter(item => {
@@ -166,10 +200,10 @@ export function CustomDataGrid<T extends Record<string, unknown>>({
         !val || String(item[key] ?? '').toLowerCase().includes(val.toLowerCase())
 
       return (
-        matches(filters?.portalName, 'portalName' as keyof T) &&
-        matches(filters?.marketerName, 'marketerName' as keyof T) &&
-        matches(filters?.portalUser, 'portalUser' as keyof T) &&
-        matches(filters?.marketerId, 'marketerId' as keyof T)
+        matches(filters.portalName, 'portalName' as keyof T) &&
+        matches(filters.marketerName, 'marketerName' as keyof T) &&
+        matches(filters.portalUser, 'portalUser' as keyof T) &&
+        matches(filters.marketerId, 'marketerId' as keyof T)
       )
     })
   }, [filters, internalItems])
@@ -205,9 +239,9 @@ export function CustomDataGrid<T extends Record<string, unknown>>({
         {searchBool && (
           <Input
             className={styles.borderColor}
-            placeholder="Search all columns..."
+            placeholder="Search..."
             size="small"
-            style={{ flex: 1, maxWidth: '250px', minWidth: '150px' }}
+            style={{ flex: 1, maxWidth: '250px' }}
             value={filter}
             onChange={e => {
               setFilter(e.target.value)
@@ -216,13 +250,13 @@ export function CustomDataGrid<T extends Record<string, unknown>>({
           />
         )}
         <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-          <span>Show</span>
+          <span>Show{' '}</span>
           <select value={pageSize} onChange={e => setPageSize(Number(e.target.value))}>
             {pageSizeOptions.map(size => (
               <option key={size} value={size}>{size}</option>
             ))}
           </select>
-          <span>entries</span>
+          <span>{' '}entries</span>
         </div>
       </div>
 
@@ -260,8 +294,8 @@ export function CustomDataGrid<T extends Record<string, unknown>>({
       <div className={styles.pagination}>
         <div>
           Showing{' '}
-          <strong>{fullyFilteredData.length === 0 ? 0 : (currentPage - 1) * pageSize + 1}</strong>{' '}
-          to <strong>{Math.min(currentPage * pageSize, fullyFilteredData.length)}</strong> of{' '}
+          <strong>{fullyFilteredData.length === 0 ? 0 : (currentPage - 1) * pageSize + 1}</strong> to{' '}
+          <strong>{Math.min(currentPage * pageSize, fullyFilteredData.length)}</strong> of{' '}
           <strong>{fullyFilteredData.length}</strong> entries
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
@@ -280,12 +314,17 @@ export function CustomDataGrid<T extends Record<string, unknown>>({
             label="Next"
             shape="rounded"
             size="small"
-            onClick={() =>
-              setCurrentPage(p => (p * pageSize < fullyFilteredData.length ? p + 1 : p))
-            }
+            onClick={() => setCurrentPage(p => p + 1)}
           />
         </div>
       </div>
+      {label && <FluentButton
+        appearance="primary"
+        label={label}
+        shape="rounded"
+        size="small"
+        onClick={onAddButton}
+      />}
     </div>
   )
 }

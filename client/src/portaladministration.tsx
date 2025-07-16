@@ -3,7 +3,8 @@ import { Input, Field, makeStyles, Text, tokens } from '@fluentui/react-componen
 
 import { FluentButton } from './button/button.tsx'
 import { CustomDataGrid } from './dataGrids/index.tsx'
-import { useGetAll } from './hooks/useCrud.ts'
+import { useNavigate } from 'react-router-dom'
+import { useDeletePortal, useGetAllPortals } from './hooks/usePortalApi.ts'
 
 const useStyles = makeStyles({
   wrapper: {
@@ -43,7 +44,6 @@ const useStyles = makeStyles({
     gridTemplateColumns: '1fr 1fr',
     justifyContent: 'space-between',
     gap: '16px',
-
     '@media (max-width: 600px)': {
       gridTemplateColumns: '1fr',
     },
@@ -64,14 +64,27 @@ export interface PortalRow {
   id: number
   portalName: string
   portalStatus: 'Active' | 'Inactive' | string
-  'View this Portal': string
   [key: string]: string | number
 }
 
-
 const PortaladministrationForm = () => {
   const styles = useStyles()
-  const { data: result, isLoading, isError } = useGetAll<PortalRow>('portalRows', '/api/portals')  
+  const { data: result } = useGetAllPortals()
+  const { mutate: deletePortal } = useDeletePortal()
+  const navigate = useNavigate()
+
+  if (result?.isSuccess) {
+    console.log("✅ Portals loaded:", result.value)
+  } else if (result) {
+    console.error("❌ API failed:", result.error)
+  } else {
+    console.log("⌛ Waiting for result...")
+  }
+
+
+  const handleEditClick = (item: PortalRow) => {
+    navigate(`/portal-edit/${item.id}`)
+  }
 
   const [filters, setFilters] = useState({
     portalName: '',
@@ -96,6 +109,8 @@ const PortaladministrationForm = () => {
       marketerId: '',
     })
   }
+
+  const handleAddButton = () => navigate('/portal-create')
 
   return (
     <div className={styles.wrapper}>
@@ -158,17 +173,22 @@ const PortaladministrationForm = () => {
           </fieldset>
         </form>
       </div>
+
       <div className={styles.container}>
         <fieldset className={styles.fieldset}>
           <legend className={styles.legend}>Listing</legend>
           <CustomDataGrid
             deleteBool
+            viewBool
             editBool
             searchBool
             filters={filters}
             getRowId={item => item.id}
             items={result?.isSuccess ? result.value : []}
             label="Add New Portal"
+            onDeleteClick={item => deletePortal(item.id)}
+            onEditClick={handleEditClick}
+            onAddButton={handleAddButton}
           />
         </fieldset>
       </div>
