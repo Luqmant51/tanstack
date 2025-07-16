@@ -18,8 +18,8 @@ interface PortalsInformationProps {
     company: string
     activeDate: Date
     portalStatus: string
-    check1: string
-    check2: string
+    check1: boolean
+    check2: boolean
   }
   setPortalInfo: React.Dispatch<
     React.SetStateAction<{
@@ -27,17 +27,19 @@ interface PortalsInformationProps {
       company: string
       activeDate: Date
       portalStatus: string
-      check1: string
-      check2: string
+      check1: boolean
+      check2: boolean
     }>
   >
 }
 
-const onFormatDate = (date?: Date): string => {
-  return !date
-    ? ''
-    : date.getMonth() + 1 + ' / ' + date.getDate() + ' / ' + (date.getFullYear() % 100)
+const onFormatDate = (date?: Date | null): string => {
+  if (!(date instanceof Date) || isNaN(date.getTime())) {
+    return ''
+  }
+  return `${date.getMonth() + 1} / ${date.getDate()} / ${date.getFullYear() % 100}`
 }
+
 
 const PortalsInformation = ({ portalInfo, setPortalInfo }: PortalsInformationProps) => {
   const styles = useEditAdminPortalFormStyles()
@@ -96,9 +98,14 @@ const PortalsInformation = ({ portalInfo, setPortalInfo }: PortalsInformationPro
                 formatDate={onFormatDate}
                 placeholder="Select a date..."
                 value={portalInfo.activeDate}
-                onChange={handlePortalInfoChange('activeDate')}
+                onSelectDate={(date) => {
+                  if (date instanceof Date && !isNaN(date.getTime())) {
+                    setPortalInfo(prev => ({ ...prev, activeDate: date }))
+                  }
+                }}
               />
             </Field>
+
 
             <Field label="Portal Status:">
               <Dropdown
@@ -123,6 +130,7 @@ const PortalsInformation = ({ portalInfo, setPortalInfo }: PortalsInformationPro
             </Field>
             <Checkbox
               className={styles.checkbox}
+              checked={portalInfo.check1}
               label="Can See Tomorrow's Post Date"
               style={{ maxWidth: '400px' }}
               onChange={handlePortalInfoChange('check1')}
@@ -137,6 +145,7 @@ const PortalsInformation = ({ portalInfo, setPortalInfo }: PortalsInformationPro
             label="Hide Clark specific items"
             style={{ maxWidth: '400px' }}
             onChange={handlePortalInfoChange('check2')}
+            checked={portalInfo.check2}
           />
         </fieldset>
       </form>

@@ -5,6 +5,7 @@ import { FluentButton } from './button/button.tsx'
 import { CustomDataGrid } from './dataGrids/index.tsx'
 import { useNavigate } from 'react-router-dom'
 import { useDeletePortal, useGetAllPortals } from './hooks/usePortalApi.ts'
+import { ColumnDefinition, PortalRow } from './types/types'
 
 const useStyles = makeStyles({
   wrapper: {
@@ -60,13 +61,6 @@ const useStyles = makeStyles({
   },
 })
 
-export interface PortalRow {
-  id: number
-  portalName: string
-  portalStatus: 'Active' | 'Inactive' | string
-  [key: string]: string | number
-}
-
 const PortaladministrationForm = () => {
   const styles = useStyles()
   const { data: result } = useGetAllPortals()
@@ -80,6 +74,21 @@ const PortaladministrationForm = () => {
   } else {
     console.log("⌛ Waiting for result...")
   }
+
+const portalColumns: ColumnDefinition<PortalRow>[] = [
+  {
+    columnId: 'portalName',
+    renderHeaderCell: () => <strong>Portal Name</strong>,
+    renderCell: (item) => <span>{String(item.portalName).toUpperCase()}</span>,
+    compare: (a, b) => String(a.portalName).localeCompare(String(b.portalName)),
+  },
+  {
+    columnId: 'portalStatus',
+    renderHeaderCell: () => <strong>Status</strong>,
+    renderCell: (item) => <span>{item.portalStatus}</span>,
+    compare: (a, b) => String(a.portalStatus).localeCompare(String(b.portalStatus)),
+  },
+]
 
 
   const handleEditClick = (item: PortalRow) => {
@@ -177,11 +186,12 @@ const PortaladministrationForm = () => {
       <div className={styles.container}>
         <fieldset className={styles.fieldset}>
           <legend className={styles.legend}>Listing</legend>
-          <CustomDataGrid
+          <CustomDataGrid<PortalRow>
             deleteBool
             viewBool
             editBool
             searchBool
+            columns={portalColumns}
             filters={filters}
             getRowId={item => item.id}
             items={result?.isSuccess ? result.value : []}
@@ -190,6 +200,7 @@ const PortaladministrationForm = () => {
             onEditClick={handleEditClick}
             onAddButton={handleAddButton}
           />
+
         </fieldset>
       </div>
     </div>

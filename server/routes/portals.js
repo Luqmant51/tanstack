@@ -1,12 +1,13 @@
 // server/routes/portals.js
 const express = require('express')
 const router = express.Router()
-const { portalList } = require('../data/portals')
+const { createTestPortals } = require('../data/portals')
 
 // GET all portals
 router.get('/', (req, res) => {
+  const portalList = createTestPortals()
   if (!portalList || portalList.length === 0) {
-    return res.status(200).json([]); // ✅ safe
+    return res.status(200).json([]);
   }
   res.json(portalList)
 })

@@ -1,5 +1,5 @@
+import { PortalRow } from '../types/types'
 import { useGetAll, useDelete, useCreate, useUpdate } from './useCrud.ts'
-import { PortalRow } from '../portaladministration.tsx'
 
 const API_PATH = '/api/portals'
 const QUERY_KEY = 'portals'

@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { makeStyles, tokens } from '@fluentui/react-components'
 
 
@@ -8,8 +8,8 @@ import PortalsCredentials from './portalsCredentials.tsx'
 import AssociateMarketers from './associateMarketers.tsx'
 import StoresGrid from './storesGrid.tsx'
 import { FluentButton } from '../button/button.tsx'
-import { PortalRow } from '../portaladministration.tsx'
 import { useParams } from 'react-router-dom'
+import { useGetAllPortals } from '../hooks/usePortalApi.ts'
 
 export const useEditAdminPortalFormStyles = makeStyles({
   wrapper: {
@@ -83,7 +83,8 @@ export const useEditAdminPortalFormStyles = makeStyles({
 })
 
 const EditAdminPortalForm = () => {
-  const { id } = useParams()
+  const { id } = useParams<{ id: string }>()
+  const { data: result } = useGetAllPortals()
   const styles = useEditAdminPortalFormStyles()
   const [checkboxSelections, setCheckboxSelections] = useState<Record<string, boolean>>({})
   const [portalInfo, setPortalInfo] = useState({
@@ -91,8 +92,8 @@ const EditAdminPortalForm = () => {
     company: '',
     activeDate: new Date(),
     portalStatus: '',
-    check1: '',
-    check2: '',
+    check1: false,
+    check2: false,
   })
 
   const [portalCredentials, setPortalCredentials] = useState({
@@ -102,14 +103,49 @@ const EditAdminPortalForm = () => {
     email: '',
     password: '',
     confirmPassword: '',
-    check1: '',
+    check1: false,
   })
 
-  const handleSave = () => {
-    console.log('Saving portal info:', portalInfo)
-    console.log('Saving credentials:', portalCredentials)
-    console.log('checkboxSelections', checkboxSelections)
+  const data = useMemo(() => {
+    if (!id || !result?.isSuccess) return null
+    return result.value.find(p => p.id === Number(id))
+  }, [id, result])
+
+  
+useEffect(() => {
+  if (data?.portalInfo) {
+    setPortalInfo({
+      ...data.portalInfo,
+      activeDate: new Date(data.portalInfo.activeDate)
+    })
   }
+
+  if (data?.portalCredentials) {
+    setPortalCredentials({
+      ...data.portalCredentials,
+    })
+  }
+
+  if (data?.reportPreferences) {
+    setCheckboxSelections(data.reportPreferences)
+  }
+}, [data])
+
+
+
+const handleSave = () => {
+  const formattedPortalInfo = {
+    ...portalInfo
+  }
+
+  const formattedCredentials = {
+    ...portalCredentials,
+  }
+
+  console.log('Saving portal info:', formattedPortalInfo)
+  console.log('Saving credentials:', formattedCredentials)
+}
+
 
   const handleClear = () => {
     setPortalInfo({
@@ -117,8 +153,8 @@ const EditAdminPortalForm = () => {
       company: '',
       activeDate: new Date(),
       portalStatus: '',
-      check1: '',
-      check2: '',
+      check1: false,
+      check2: false,
     })
 
     setPortalCredentials({
@@ -128,7 +164,7 @@ const EditAdminPortalForm = () => {
       email: '',
       password: '',
       confirmPassword: '',
-      check1: '',
+      check1: false,
     })
     setCheckboxSelections({})
   }

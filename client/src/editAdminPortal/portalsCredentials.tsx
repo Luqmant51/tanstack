@@ -10,7 +10,7 @@ interface PortalsCredentialsProps {
     email: string
     password: string
     confirmPassword: string
-    check1: string
+    check1: boolean
   }
   setPortalCredentials: React.Dispatch<
     React.SetStateAction<{
@@ -20,7 +20,7 @@ interface PortalsCredentialsProps {
       email: string
       password: string
       confirmPassword: string
-      check1: string
+      check1: boolean
     }>
   >
 }
@@ -97,6 +97,7 @@ const PortalsCredentials = ({
               className={styles.checkbox}
               label="Can See Tomorrow's Post Date"
               onChange={handleCredentialChange('check1')}
+              checked={portalCredentials.check1}
             />
           </div>
         </fieldset>

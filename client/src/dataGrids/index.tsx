@@ -13,6 +13,7 @@ import {
 } from '@fluentui/react-components'
 import { Edit20Regular, Delete20Regular } from '@fluentui/react-icons'
 import { FluentButton } from '../button/button.tsx'
+import { ColumnDefinition } from '../types/types'
 
 const useStyles = makeStyles({
   tableWrapper: {
@@ -66,18 +67,13 @@ type CustomDataGridProps<T extends Record<string, unknown>> = {
   viewBool?: boolean
   deleteBool?: boolean
   editBool?: boolean
+  columns?: ColumnDefinition<T>[]
   size?: 'medium' | 'small' | 'large'
   onEditClick?: (_item: T) => void
   onDeleteClick?: (_item: T) => void
   onAddButton?: () => void
 }
 
-type ColumnDefinition<T> = {
-  columnId: string
-  renderHeaderCell: () => React.ReactNode
-  renderCell: (_item: T) => React.ReactNode
-  compare: (_a: T, _b: T) => number
-}
 
 export function CustomDataGrid<T extends Record<string, unknown>>({
   items = [],
@@ -88,6 +84,7 @@ export function CustomDataGrid<T extends Record<string, unknown>>({
   viewBool,
   editBool,
   onEditClick,
+  columns,
   onDeleteClick,
   onAddButton,
   label
@@ -110,34 +107,38 @@ export function CustomDataGrid<T extends Record<string, unknown>>({
     columnId === 'edit' || columnId === 'delete' ? 'group' : 'cell'
 
   const generateColumns = useMemo(() => {
-    if (internalItems.length === 0) return []
+    const baseColumns = columns?.length ? [...columns] : []
 
-    const sample = internalItems[0]
-    const keys = Object.keys(sample).filter(k => k !== 'id')
+    if (!columns?.length && internalItems.length > 0) {
+      const sample = internalItems[0]
+      const keys = Object.keys(sample).filter(k => k !== 'id')
 
-    const columns: ColumnDefinition<T>[] = keys.map(key => ({
-      columnId: key,
-      renderHeaderCell: () => (
-        <div style={{ minWidth: '120px' }}>
-          {key.replace(/([A-Z])/g, ' $1').toUpperCase()}
-        </div>
-      ),
-      renderCell: (item: T) => (
-        <div style={{ width: '150px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          {String(item[key])}
-        </div>
-      ),
-      compare: (a: T, b: T) => {
-        const aVal = a[key]
-        const bVal = b[key]
-        if (typeof aVal === 'string' && typeof bVal === 'string') return aVal.localeCompare(bVal)
-        if (typeof aVal === 'number' && typeof bVal === 'number') return aVal - bVal
-        return 0
-      },
-    }))
+      baseColumns.push(
+        ...keys.map(key => ({
+          columnId: key,
+          renderHeaderCell: () => (
+            <div style={{ minWidth: '120px' }}>
+              {key.replace(/([A-Z])/g, ' $1').toUpperCase()}
+            </div>
+          ),
+          renderCell: (item: T) => (
+            <div style={{ width: '150px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {String(item[key])}
+            </div>
+          ),
+          compare: (a: T, b: T) => {
+            const aVal = a[key]
+            const bVal = b[key]
+            if (typeof aVal === 'string' && typeof bVal === 'string') return aVal.localeCompare(bVal)
+            if (typeof aVal === 'number' && typeof bVal === 'number') return aVal - bVal
+            return 0
+          },
+        }))
+      )
+    }
 
     if (viewBool) {
-      columns.unshift({
+      baseColumns.unshift({
         columnId: 'view',
         renderHeaderCell: () => <div style={{ minWidth: '80px' }}>VIEW</div>,
         renderCell: (item: T) => {
@@ -160,7 +161,7 @@ export function CustomDataGrid<T extends Record<string, unknown>>({
     }
 
     if (deleteBool) {
-      columns.unshift({
+      baseColumns.unshift({
         columnId: 'delete',
         renderHeaderCell: () => <div style={{ minWidth: '80px' }}>DELETE</div>,
         renderCell: (item: T) => (
@@ -177,8 +178,8 @@ export function CustomDataGrid<T extends Record<string, unknown>>({
       })
     }
 
-    if (editBool) {
-      columns.unshift({
+        if (editBool) {
+      baseColumns.unshift({
         columnId: 'edit',
         renderHeaderCell: () => 'EDIT',
         renderCell: (item: T) => (
@@ -190,9 +191,8 @@ export function CustomDataGrid<T extends Record<string, unknown>>({
         compare: () => 0,
       })
     }
-
-    return columns
-  }, [internalItems, deleteBool, editBool, onEditClick, onDeleteClick, getRowId])
+    return baseColumns
+  }, [columns, internalItems, deleteBool, editBool, onEditClick, onDeleteClick, getRowId, viewBool])
 
   const filteredData = useMemo(() => {
     return internalItems.filter(item => {
